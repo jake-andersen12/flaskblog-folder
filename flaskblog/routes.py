@@ -29,6 +29,7 @@ posts = [
 
 @app.route('/')
 @app.route('/home')
+@app.route('/home2')
 def home():
     return render_template('home.html', posts=posts)
 
