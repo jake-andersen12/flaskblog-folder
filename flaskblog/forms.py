@@ -1,7 +1,7 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
 from flask_login import current_user
-from wtforms import StringField, PasswordField, SubmitField, BooleanField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
 from wtforms import validators
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
 from flaskblog.models import User
@@ -53,7 +53,12 @@ class UpdateAccountForm(FlaskForm):
                 raise ValidationError('That username is taken. Please choose a different one.')
     
     def validate_email(self, email):
-        if email.data != current_user.email:
+        if email.data != current_user.email:  #notice I'm importing current_user up at the top to do this.  This if statement is making so that it won't throw a validation error if they don't change their user_name.
             user = User.query.filter_by(email=email.data).first()
             if user:
                 raise ValidationError('That email is taken. Please choose a different one.')
+
+class PostForm(FlaskForm):
+    title = StringField('Title', validators=[DataRequired()])
+    content = TextAreaField('Content', validators=[DataRequired()])
+    submit = SubmitField('Post')
