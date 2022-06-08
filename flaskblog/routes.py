@@ -5,32 +5,16 @@ from flask import  render_template, url_for, flash, redirect, request
 from wtforms import form
 from flaskblog import app, db, bcrypt
 from flaskblog.models import User, Post
-from flaskblog.forms import RegistrationForm, LoginForm, UpdateAccountForm
+from flaskblog.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from flask_login import login_user, current_user, logout_user, login_required
 
-##this is a list of dictionaries.
-posts = [
-    {'author': 'Jake Andersen',
-    'title': 'Blog Post 1',
-    'content': 'First post content',
-    'date_posted': 'October 11, 2021'
-    },
-    {'author': 'Emillie Whitlock',
-    'title': 'Blog Post 2',
-    'content': 'Second post content',
-    'date_posted': 'October 15, 2021'
-    },
-       {'author': 'Sean Connery',
-    'title': 'Playing Indiannas Father',
-    'content': 'It was a surreal experience...',
-    'date_posted': 'October 12, 2021'
-    }
-]
+
 
 @app.route('/')
 @app.route('/home')
 @app.route('/home2')
 def home():
+    posts = Post.query.all()
     return render_template('home.html', posts=posts)
 
 @app.route('/about')
@@ -72,12 +56,13 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
+#This function creates the logic for saving a picture with a random name with the file type.  The os module imported above allows you to get the file type
 def save_picture(form_picture):
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_picture.filename)
     picture_fn = random_hex + f_ext
     picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_fn)
-
+#Here' where the same function is resizing the image with the Image class from PIL (Pillow)
     output_size = (125, 125)
     i = Image.open(form_picture)
     i.thumbnail(output_size)
@@ -101,5 +86,18 @@ def account():
     elif request.method == 'GET':
         form.username.data = current_user.username
         form.email.data = current_user.email
-    image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
-    return render_template('account.html', title = 'Account', image_file=image_file, form=form)
+    image_file = url_for('static', filename='profile_pics/' + current_user.image_file) #image file is the name of the column stored in the user model. That's what references default.jpg. Notice also the file directory is in the static folder.
+    return render_template('account.html', title = 'Account', image_file=image_file, form=form) #also defining the image file here. Also notice I'm defining form at the top and it's referencing the UpdateAccountForm() found on the forms.py file. I'm telling in on this line here to use the form defined there. 
+
+
+@app.route('/post/new', methods=['GET', 'POST'])
+@login_required
+def new_post():
+    form = PostForm() #Creates an instance of the PostForm() form. Notice it's also imported above.
+    if form.validate_on_submit():
+        post = Post(title=form.title.data, content=form.content.data, author=current_user)
+        db.session.add(post)
+        db.session.commit()
+        flash(f'Your post has been created!', 'success')
+        return redirect(url_for('home'))
+    return render_template('create_post.html', title = 'New Post', form=form)
